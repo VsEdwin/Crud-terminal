@@ -1,0 +1,23 @@
+[
+    {
+        "id": 1,
+        "nombre": "Edwin",
+        "correo": "edwin@gmail.com",
+        "edad": 21,
+        "telefono": "5578809064"
+    },
+    {
+        "id": 2,
+        "nombre": "Belen",
+        "correo": "belen@gmail.com",
+        "edad": 20,
+        "telefono": "5580907610"
+    },
+    {
+        "id": 3,
+        "nombre": "Dylan",
+        "correo": "dylaan@gmail.com",
+        "edad": 11,
+        "telefono": "5512906553"
+    }
+]
