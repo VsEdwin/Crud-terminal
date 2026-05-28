@@ -23,11 +23,31 @@ os.makedirs("backups", exist_ok=True)
 
 #Funcion para poder generar logs de las acciones realizadas en el sistema, se guarda con un mensaje y fecha y hora en un archivo de texto dentro de la carpeta logs
 def generar_log(mensaje):
-    #Obtiene la fecha y hora actual
+
     fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    #Agrega el contenido sin borrar el contenido anteriorior
+
+    # =========================
+    # LOG TXT
+    # =========================
+
     with open("logs/historial.log", "a", encoding="utf-8") as archivo:
+
         archivo.write(f"[{fecha}] {mensaje}\n")
+
+    # =========================
+    # HISTORIAL MYSQL
+    # =========================
+
+    query = """
+    INSERT INTO t_historial_sistema(accion, fecha)
+    VALUES(%s,%s)
+    """
+
+    valores = (mensaje, fecha)
+
+    cursor.execute(query, valores)
+
+    conexion.commit()
 
 # =========================
 # CREATE
@@ -43,9 +63,29 @@ def agregar_usuario():
     edad = input("Edad: ")
     telefono = input("Telefono: ")
 
+    # =========================
+    # VALIDACIONES
+    # =========================
+
+    if nombre.strip() == "":
+        print("El nombre no puede estar vacio")
+        return
+
+    if "@" not in correo:
+        print("Correo invalido")
+        return
+
+    if not edad.isdigit():
+        print("La edad debe ser numerica")
+        return
+
+    if not telefono.isdigit():
+        print("El telefono debe contener solo numeros")
+        return
+
     #Inserccion de los datos del nuevo usuario a la base de datos
     query = """
-    INSERT INTO usuarios(nombre, correo, edad, telefono)
+    INSERT INTO t_usuarios(nombre, correo, edad, telefono)
     VALUES(%s,%s,%s,%s)
     """
     #tupla con los valores a insertar en la base de datos
@@ -70,7 +110,7 @@ def mostrar_usuarios():
     print("\n=== LISTA DE USUARIOS ===")
 
     #Conuslta para obtener los usuario registrados en la base de datos
-    query = "SELECT * FROM usuarios"
+    query = "SELECT * FROM t_usuarios"
 
     #Ejecuta la consulta y obtiene los datos
     cursor.execute(query)
@@ -115,10 +155,30 @@ def actualizar_usuario():
     correo = input("Nuevo correo: ")
     edad = input("Nueva edad: ")
     telefono = input("Nuevo telefono: ")
+    
+    # =========================
+    # VALIDACIONES
+    # =========================
+
+    if nombre.strip() == "":
+        print("El nombre no puede estar vacio")
+        return
+
+    if "@" not in correo:
+        print("Correo invalido")
+        return
+
+    if not edad.isdigit():
+        print("La edad debe ser numerica")
+        return
+
+    if not telefono.isdigit():
+        print("El telefono debe contener solo numeros")
+        return
 
     #Modifica el registro del usuario seleccionado por el ID, Where indica que solo el usario con el Id se va a actulizar
     query = """
-    UPDATE usuarios
+    UPDATE t_usuarios
     SET nombre=%s, correo=%s, edad=%s, telefono=%s
     WHERE id=%s
     """
@@ -151,7 +211,7 @@ def eliminar_usuario():
     id_usuario = input("ID del usuario: ")
 
     #Elimina el registro del usuario seleccionado por el ID
-    query = "DELETE FROM usuarios WHERE id=%s"
+    query = "DELETE FROM t_usuarios WHERE id=%s"
 
     #tupla con el id del usuario a eliminar
     valores = (id_usuario,)
@@ -208,7 +268,7 @@ def generar_respaldo():
     print("\n=== GENERANDO RESPALDO ===")
 
     #Consulta para obtener los usuarios registrados en la base de datos
-    query = "SELECT * FROM usuarios"
+    query = "SELECT * FROM t_usuarios"
 
     cursor.execute(query)
 
@@ -258,13 +318,13 @@ def restaurar_respaldo():
             usuarios = json.load(archivo)
 
         # borrar tabla
-        cursor.execute("DELETE FROM usuarios")
+        cursor.execute("DELETE FROM t_usuarios")
 
         #Recorre cada usuario obtenido del archivo json y lo inserta en la base de datos, se utiliza una consulta de inserccion con los campos id, nombre, correo, edad y telefono para insertar los datos de cada usuario en la tabla usuarios
         for usuario in usuarios:
 
             query = """
-            INSERT INTO usuarios(id,nombre,correo,edad,telefono)
+            INSERT INTO t_usuarios(id,nombre,correo,edad,telefono)
             VALUES(%s,%s,%s,%s,%s)
             """
 
@@ -293,6 +353,32 @@ def restaurar_respaldo():
         print(f"Error: {error}")
 
 # =========================
+# TRUNCAR TABLA
+# =========================
+
+#Funcion para vaciar completamente la tabla usuarios
+def truncar_tabla():
+
+    print("\n=== TRUNCAR TABLA USUARIOS ===")
+
+    confirmacion = input("¿Seguro que deseas eliminar TODOS los registros? (si/no): ")
+
+    if confirmacion.lower() == "si":
+
+        query = "TRUNCATE TABLE t_usuarios"
+
+        cursor.execute(query)
+
+        conexion.commit()
+
+        generar_log("Tabla usuarios truncada")
+
+        print("Tabla vaciada correctamente")
+
+    else:
+
+        print("Operacion cancelada")
+# =========================
 # MENU
 # =========================
 
@@ -312,10 +398,11 @@ def menu():
 5. Ver historial
 6. Generar respaldo JSON
 7. Restaurar respaldo JSON
-8. Salir
+8. Truncar tabla usuarios
+9. Salir
 
 ===============================
-        """)
+""")
 
         #Pide al usuario que seleccione una opcion del menu para realizar la operacion correspondiente, se guarda la opcion seleccionada en la variable opcion
         opcion = input("Seleccione una opcion: ")
@@ -343,8 +430,11 @@ def menu():
 
         elif opcion == "8":
 
-            generar_log("Sistema cerrado")
+            truncar_tabla()
 
+        elif opcion == "9":
+
+            generar_log("Salida del sistema")
             print("Adios")
             break
 
